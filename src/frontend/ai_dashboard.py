@@ -32,11 +32,10 @@ from model_inference import load_models, predict
     # 5 → Results table and summary metrics are displayed
     
     # --------------------[Charts Section]------------------------------
-    # 6 → Analytical charts are rendered (trend, distribution)
+    # 6 → Analytical charts are rendered (trend, distribution) 
 
     # --------------------[Explainability Section]------------------
-    # 7  → SHAP explains the selected prediction
-
+    # 7  → SHAP explains the selected prediction + MItre ATT&CK explanation
 # ---------------------------------------------------------------
 
 st.set_page_config(page_title="AI Forensics Dashboard", layout="wide")

@@ -5,7 +5,7 @@
 
 - Install/verify `gretel-client` and `gretel-trainer` inside the notebook kernel.
 - Load the cleaned NF-CSE-CIC-IDS2018 CSV and keep a lightweight schema dict for validation.
-- Configure the ACTGAN trainer (`models.GretelACTGAN`) and capture key hyperparameters.
+- Configure the CTGAN trainer (`models.GretelACTGAN`) and capture key hyperparameters.
 - Train the generator and export ≥5k synthetic rows for downstream phases.
 
 ---------------------------------------------------------------------------------------------------
