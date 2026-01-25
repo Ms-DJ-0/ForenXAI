@@ -3,11 +3,8 @@
 
 **[PHASE 1] Synthetic Data Generation (synthetic_data_generation.ipynb)**
 
-- Install/verify `gretel-client` and `gretel-trainer` inside the notebook kernel.
-- Load the cleaned NF-CSE-CIC-IDS2018 CSV and keep a lightweight schema dict for validation.
-- Configure the CTGAN trainer (`models.GretelACTGAN`) and capture key hyperparameters.
-- Train the generator and export ≥5k synthetic rows for downstream phases.
-
+- Uses NF-UNSW-NB15-v3 dataset (see DATASET_SOURCE.md) to generate a synthetic dataset via CTGAN.
+- Log original dataset statistics (class distributions, feature types/ranges) for comparison.
 ---------------------------------------------------------------------------------------------------
 **[PHASE 2] Data Preprocessing (data_prep.ipynb)**
 
