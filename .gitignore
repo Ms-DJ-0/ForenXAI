@@ -61,28 +61,8 @@ processed_data/
 *.feather
 *.pkl
 
-############################
-# Model artifacts
-############################
-models/
-artifacts/
-checkpoints/
-*.joblib
-*.pkl
-*.onnx
 
-############################
-# Reports / outputs (plots, metrics exports)
-############################
-reports/
-outputs/
-results/
-*.png
-*.jpg
-*.jpeg
-*.svg
-*.pdf
-*.html
+
 
 ############################
 # Secrets / environment files
@@ -93,12 +73,7 @@ results/
 secrets.*
 **/secrets.*
 
-############################
-# Gretel (synthetic generation artifacts)
-############################
-gretel/
-gretel_artifacts/
-*.tar.gz
+
 
 ############################
 # Streamlit
