@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
+from typing import Optional, Dict, Tuple, Any
 from sklearn.preprocessing import LabelEncoder, StandardScaler, PowerTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 import joblib
@@ -20,9 +21,74 @@ os.makedirs(SCALER_DIR, exist_ok=True)
 os.makedirs(PROCESSED_DIR, exist_ok=True)
 
 # ===============================
+# Helper Functions
+# ===============================
+def _combine_datasets(df_real: pd.DataFrame, df_synthetic: Optional[pd.DataFrame]) -> pd.DataFrame:
+    """Combine real and synthetic datasets."""
+    if df_synthetic is not None:
+        return pd.concat([df_real, df_synthetic], axis=0).reset_index(drop=True)
+    return df_real.copy()
+
+def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Create engineered features."""
+    if 'feature1' in df.columns and 'feature2' in df.columns:
+        df['ratio_feature'] = df['feature1'] / (df['feature2'] + 1e-5)
+    
+    if 'bytes_in' in df.columns and 'bytes_out' in df.columns:
+        df['total_bytes'] = df['bytes_in'] + df['bytes_out']
+    
+    if 'timestamp' in df.columns:
+        df['hour'] = pd.to_datetime(df['timestamp']).dt.hour
+        df['day_of_week'] = pd.to_datetime(df['timestamp']).dt.dayofweek
+    
+    return df
+
+def _encode_categorical_fit(df: pd.DataFrame, cat_cols: list) -> Dict:
+    """Fit and encode categorical variables."""
+    encoders = {}
+    for col in cat_cols:
+        le = LabelEncoder()
+        df[col] = le.fit_transform(df[col].astype(str))
+        encoders[col] = le
+    joblib.dump(encoders, os.path.join(ENCODER_DIR, "label_encoders.joblib"))
+    return encoders
+
+def _encode_categorical_transform(df: pd.DataFrame, cat_cols: list, encoders: Dict) -> None:
+    """Transform categorical variables using fitted encoders."""
+    for col in cat_cols:
+        if col in encoders:
+            df[col] = encoders[col].transform(df[col].astype(str))
+
+def _fit_scalers(df: pd.DataFrame, num_cols: list) -> Tuple[PowerTransformer, StandardScaler]:
+    """Fit and apply power transformer and scaler."""
+    power_transformer = PowerTransformer(method='yeo-johnson', standardize=False)
+    df[num_cols] = power_transformer.fit_transform(df[num_cols])
+    
+    scaler = StandardScaler()
+    df[num_cols] = scaler.fit_transform(df[num_cols])
+    
+    joblib.dump(power_transformer, os.path.join(SCALER_DIR, "power_transformer.joblib"))
+    joblib.dump(scaler, os.path.join(SCALER_DIR, "scaler.joblib"))
+    
+    return power_transformer, scaler
+
+def _apply_scalers(df: pd.DataFrame, num_cols: list, 
+                   power_transformer: PowerTransformer, scaler: StandardScaler) -> None:
+    """Apply fitted scalers to data."""
+    df[num_cols] = power_transformer.transform(df[num_cols])  # type: ignore[union-attr]
+    df[num_cols] = scaler.transform(df[num_cols])  # type: ignore[union-attr]
+
+# ===============================
 # MAIN FEATURE PIPELINE
 # ===============================
-def prepare_features(df_real, df_synthetic=None, fit=True, encoders=None, scaler=None, power_transformer=None):
+def prepare_features(
+    df_real: pd.DataFrame, 
+    df_synthetic: Optional[pd.DataFrame] = None, 
+    fit: bool = True, 
+    encoders: Optional[Dict] = None, 
+    scaler: Optional[StandardScaler] = None, 
+    power_transformer: Optional[PowerTransformer] = None
+) -> Tuple[Dict[str, pd.DataFrame], Optional[Dict[str, Any]]]:
     """
     Returns:
         {
@@ -30,86 +96,49 @@ def prepare_features(df_real, df_synthetic=None, fit=True, encoders=None, scaler
             'deep_learning': scaled features
         }
     """
-
-    # -------------------------------
     # 1. Combine datasets
-    # -------------------------------
-    if df_synthetic is not None:
-        df = pd.concat([df_real, df_synthetic], axis=0).reset_index(drop=True)
-    else:
-        df = df_real.copy()
-
-    # -------------------------------
+    df = _combine_datasets(df_real, df_synthetic)
+    
     # 2. Feature Engineering
-    # -------------------------------
-    if 'feature1' in df.columns and 'feature2' in df.columns:
-        df['ratio_feature'] = df['feature1'] / (df['feature2'] + 1e-5)
-
-    if 'bytes_in' in df.columns and 'bytes_out' in df.columns:
-        df['total_bytes'] = df['bytes_in'] + df['bytes_out']
-
-    if 'timestamp' in df.columns:
-        df['hour'] = pd.to_datetime(df['timestamp']).dt.hour
-        df['day_of_week'] = pd.to_datetime(df['timestamp']).dt.dayofweek
-
-    # -------------------------------
+    df = _engineer_features(df)
+    
     # 3. Encode Categorical Variables
-    # -------------------------------
     cat_cols = df.select_dtypes(include='object').columns.tolist()
-
     if fit:
-        encoders = {}
-        for col in cat_cols:
-            le = LabelEncoder()
-            df[col] = le.fit_transform(df[col].astype(str))
-            encoders[col] = le
-        joblib.dump(encoders, os.path.join(ENCODER_DIR, "label_encoders.joblib"))
+        encoders = _encode_categorical_fit(df, cat_cols)
     else:
-        for col in cat_cols:
-            if col in encoders:
-                df[col] = encoders[col].transform(df[col].astype(str))
-
-    # -------------------------------
-    # 🔥 Branch for model types
-    # -------------------------------
+        if encoders is None:
+            raise ValueError("encoders must be provided when fit=False")
+        _encode_categorical_transform(df, cat_cols, encoders)
+    
+    # 4. Branch for model types
     df_trees = df.copy()  # Unscaled for RF / Isolation Forest
-
-    # -------------------------------
-    # 4. Transform + Scale (Deep Learning only)
-    # -------------------------------
+    
+    # 5. Transform + Scale (Deep Learning only)
     num_cols = df.select_dtypes(include=np.number).columns.tolist()
-
     if fit:
-        power_transformer = PowerTransformer(method='yeo-johnson', standardize=False)
-        df[num_cols] = power_transformer.fit_transform(df[num_cols])
-
-        scaler = StandardScaler()
-        df[num_cols] = scaler.fit_transform(df[num_cols])
-
-        joblib.dump(power_transformer, os.path.join(SCALER_DIR, "power_transformer.joblib"))
-        joblib.dump(scaler, os.path.join(SCALER_DIR, "scaler.joblib"))
+        power_transformer, scaler = _fit_scalers(df, num_cols)
     else:
-        df[num_cols] = power_transformer.transform(df[num_cols])
-        df[num_cols] = scaler.transform(df[num_cols])
-
-    # -------------------------------
-    # 5. Save processed training data
-    # -------------------------------
+        if power_transformer is None or scaler is None:
+            raise ValueError("power_transformer and scaler must be provided when fit=False")
+        _apply_scalers(df, num_cols, power_transformer, scaler)
+    
+    # 6. Save processed training data
     if fit:
         df_trees.to_csv(os.path.join(PROCESSED_DIR, "train_features_trees.csv"), index=False)
         df.to_csv(os.path.join(PROCESSED_DIR, "train_features_dl.csv"), index=False)
-
+    
     outputs = {
         "tree_models": df_trees,
         "deep_learning": df
     }
-
+    
     artifacts = {
         "encoders": encoders,
         "scaler": scaler,
         "power_transformer": power_transformer
     } if fit else None
-
+    
     return outputs, artifacts
 
 
@@ -126,8 +155,10 @@ def prepare_tfidf(df, text_col='text_feature', fit=True, tfidf_vectorizer=None):
         vocab = tfidf.get_feature_names_out()
         joblib.dump(vocab, os.path.join(ENCODER_DIR, "tfidf_vocab.joblib"))
     else:
+        if tfidf_vectorizer is None:
+            raise ValueError("tfidf_vectorizer must be provided when fit=False")
         tfidf = tfidf_vectorizer
-        tfidf_matrix = tfidf.transform(df[text_col])
+        tfidf_matrix = tfidf.transform(df[text_col])  # type: ignore[union-attr]
 
     return tfidf_matrix
 
