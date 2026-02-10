@@ -1,7 +1,7 @@
 
 ## ForenXAI
 
-AI-assisted cyber forensics pipeline that ingests payload timelines, trains severity and anomaly detectors, and serves explainable results through a Streamlit dashboard. The project centers on the NF-CSE-CIC-IDS2018 dataset and augments it with Gretel ACTGAN synthetic samples.
+AI-assisted cyber forensics pipeline that ingests payload timelines, trains severity and anomaly detectors, and serves explainable results through a Streamlit dashboard. 
 
 ### CORE COMPONENTS
 
@@ -34,3 +34,4 @@ AI-assisted cyber forensics pipeline that ingests payload timelines, trains seve
 - `models/mitre_lookup.json`: token/type → MITRE tactic/technique mapping consumed by both inference and UI layers.
 
 Keep ingestion, inference, and dashboard modules decoupled so the same models can power APIs or batch jobs beyond Streamlit.
+
