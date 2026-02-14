@@ -1,7 +1,7 @@
 
 ## ForenXAI
 
-AI-powered network intrusion detection system that processes network traffic data, trains supervised and unsupervised ML models, and delivers explainable predictions through a Streamlit dashboard. The project uses the NF-CSE-CIC-IDS2018 dataset and augments it with CTGAN-generated synthetic samples for improved model generalization.
+A network intrusion detection system that processes network traffic data, trains supervised and unsupervised ML models, and delivers explainable predictions through a Streamlit dashboard. The project uses the NF-UNSW-NB15-v3 dataset and augments it with CTGAN-generated synthetic samples for improved model generalization.
 
 ### PROJECT PHASES
 
@@ -122,12 +122,18 @@ AI-powered network intrusion detection system that processes network traffic dat
 
 ### TECHNICAL SPECIFICATIONS
 
-**Dataset**: NF-CSE-CIC-IDS2018
-- Training: ~1.8M samples
-- Validation: ~230K samples  
-- Test: ~230K samples
-- Features: 36 engineered network traffic features
+**Real Dataset**:NF-UNSW-NB15-v3 
+- Training: # samples
+- Validation: # samples  
+- Test: # samples
+- Features: # engineered network traffic features
 
+**Synthetic Dataset**:
+- Training: # samples
+- Validation: # samples  
+- Test: # samples
+- Features: # engineered network traffic features
+- 
 **Models Performance** (Expected on test set):
 - Random Forest: F1-Score ≥ 0.95, ROC-AUC ≥ 0.98
 - MLP: F1-Score ≥ 0.94, ROC-AUC ≥ 0.97
@@ -138,3 +144,4 @@ AI-powered network intrusion detection system that processes network traffic dat
 - Pipeline-wrapped models (single artifact deployment)
 - Reproducible results (seeded random states)
 - Scalable to API/batch deployments beyond Streamlit
+
